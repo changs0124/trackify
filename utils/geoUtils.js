@@ -96,8 +96,22 @@ export const calcElapsedMs = (startDate, endDate, status) => {
     return now - s; // 진행중/취소시 경과로 표시(원하면 취소는 "-" 처리 가능)
 }
 
+export const haversineDistanceKm = (a, b) => {
+    const R = 6371;
+    const dLat = ((b.latitude - a.latitude) * Math.PI) / 180;
+    const dLng = ((b.longitude - a.longitude) * Math.PI) / 180;
+    const lat1 = (a.latitude * Math.PI) / 180;
+    const lat2 = (b.latitude * Math.PI) / 180;
+    const h =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    const c = 2 * Math.asin(Math.sqrt(h));
+    return R * c;
+}
+
 export const totalPathKm = (coords) => {
     if (!coords || coords.length < 2) return 0;
+    let sum = 0;
     for (let i = 1; i < coords.length; i++) sum += haversineDistanceKm(coords[i - 1], coords[i]);
     return Math.round(sum * 10) / 10; // 소수 1자리 반올림
 }

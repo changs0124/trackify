@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { View } from 'react-native';
-import MapView from 'react-native-maps';
-import { Button, Card, Divider, Modal, Portal } from 'react-native-paper';
+import MapView, { Marker, Polyline } from 'react-native-maps';
+import { Button, Card, Divider, Modal, Portal, Text } from 'react-native-paper';
 import { computeRegion, totalPathKm } from 'utils/geoUtils';
 
 function TabsHistoryMapBox({ mapVisible, setMapVisible, mapCoords, setMapCoords, mapTitle, setMapTitle }) {
