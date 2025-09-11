@@ -1,8 +1,8 @@
 import { useRouter } from "expo-router";
 import { useAuthGate } from "hooks/useAuthGate";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AppState, View } from "react-native";
-import { ActivityIndicator, Text } from "react-native-paper";
+import { ActivityIndicator, Button, Text } from "react-native-paper";
 
 function Center({ children }) {
     return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 16 }}>{children}</View>;
@@ -10,7 +10,7 @@ function Center({ children }) {
 
 function AuthProvider({ children }) {
     const router = useRouter();
-    
+
     const { ui, auth } = useAuthGate();
 
     useEffect(() => {
@@ -20,17 +20,23 @@ function AuthProvider({ children }) {
         return () => sub.remove();
     }, [auth]);
 
+    const movedRef = useRef(false);
     useEffect(() => {
+        if (movedRef.current) return;
         if (ui.state === "noUserCode" || ui.state === "invalidUserCode" || ui.state === "needRegister") {
-            router.replace({ pathname: "/register" });
+            movedRef.current = true;
+            router.replace("/register");
         }
-    }, [ui.state])
+    }, [ui.state, router]);
 
+    // ------- 여기서 '렌더링 분기'를 반환으로 처리 -------
     if (ui.state === "waitingStorage" || ui.state === "authLoading") {
         return (
             <Center>
                 <ActivityIndicator />
-                <Text style={{ marginTop: 8 }}>{ui.state === "waitingStorage" ? "Waiting Storage" : "Auth is Loading"}</Text>
+                <Text style={{ marginTop: 8 }}>
+                    {ui.state === "waitingStorage" ? "Waiting Storage" : "Auth is Loading"}
+                </Text>
             </Center>
         );
     }
@@ -47,6 +53,11 @@ function AuthProvider({ children }) {
         );
     }
 
+    if (ui.state === "noUserCode" || ui.state === "invalidUserCode" || ui.state === "needRegister") {
+        return null;
+    }
+
+    // 인증 완료
     return <>{children}</>;
 }
 

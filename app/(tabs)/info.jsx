@@ -7,7 +7,7 @@ import { useAtomValue } from "jotai";
 import { View } from "react-native";
 import { Avatar, Button, Card, Divider, List } from "react-native-paper";
 
-function info() {
+function Info() {
     const userCode = useAtomValue(userCodeAtom);
 
     const myInfo = useQuery({
@@ -82,4 +82,4 @@ function info() {
     );
 }
 
-export default info;
+export default Info;

@@ -1,4 +1,4 @@
-import { ScrollView } from "react-native-gesture-handler";
+import { ScrollView } from "react-native";
 
 function TabLayout({ children }) {
     return (

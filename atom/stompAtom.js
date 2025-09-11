@@ -1,6 +1,7 @@
 import { atom } from "jotai";
 
-export const presenceAtom = atom([]);
+export const myPresenceAtom = atom(null);
+export const otherPresenceAtom = atom({});
 
 export const socketStatusAtom = atom("connecting");
 

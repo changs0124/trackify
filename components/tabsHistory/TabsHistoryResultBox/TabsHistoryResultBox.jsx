@@ -1,8 +1,13 @@
-import { STATUS_META } from "constants/tabsHistoryConstant";
 import { useCallback } from "react";
 import { View } from "react-native";
 import { Badge, Card, Chip, Divider, List, Text } from "react-native-paper";
 import { calcElapsedMs, formatDuration, parsePaths, totalPathKm } from "utils/geoUtils";
+
+const STATUS_META = {
+    0: { label: "cancel", icon: "close-circle", mode: "outlined", badge: "error" },
+    1: { label: "working", icon: "progress-clock", mode: "outlined", badge: "primary" },
+    2: { label: "complete", icon: "check-circle", mode: "contained", badge: "success" },
+};
 
 function TabsHistoryResultBox({ isSearching, historyList, setMapVisible, setMapCoords, setMapTitle }) {
 
@@ -75,7 +80,10 @@ function TabsHistoryResultBox({ isSearching, historyList, setMapVisible, setMapC
                                 )}
                                 onPress={() => hasPath && openMapForItem(item)}
                             />
-                            {idx < historyList.length - 1 && <Divider />}
+                            {
+                                idx < historyList.length - 1 &&
+                                <Divider />
+                            }
                         </View>
                     );
                 })

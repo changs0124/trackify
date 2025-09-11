@@ -9,7 +9,9 @@ export const TABS_META = {
 
 export function renderTabIcon(routeName) {
     return ({ color, size, focused }) => {
-        const meta = TABS_META[routeName];
-        return <Ionicons name={focused ? meta.icon : meta.iconOutline} size={size} color={color} />;
+        const meta = TABS_META[routeName]
+            ?? { icon: "ellipse", iconOutline: "ellipse-outline" }; // 안전 가드
+        const name = focused ? meta.icon : meta.iconOutline;
+        return <Ionicons name={name} size={size} color={color} />;
     };
 }

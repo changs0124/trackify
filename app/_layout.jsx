@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import AuthProvider from "lib/AuthProvider";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { PaperProvider } from "react-native-paper";
@@ -8,7 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { darkTheme, lightTheme } from "styles/theme";
 
 const queryClient = new QueryClient();
-function _layout() {
+function RootLayout() {
     const scheme = useColorScheme() ?? "light";
 
     return (
@@ -16,9 +15,7 @@ function _layout() {
             <SafeAreaProvider>
                 <PaperProvider theme={scheme === "dark" ? darkTheme : lightTheme}>
                     <QueryClientProvider client={queryClient}>
-                        <AuthProvider>
-                            <Stack screenOptions={{ headerShown: false }} />
-                        </AuthProvider>
+                        <Stack screenOptions={{ headerShown: false }} />
                     </QueryClientProvider>
                 </PaperProvider>
             </SafeAreaProvider>
@@ -27,4 +24,4 @@ function _layout() {
     );
 }
 
-export default _layout;
+export default RootLayout;

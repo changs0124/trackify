@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Banner } from "react-native-paper";
 
-function TabsIndexBanner({ myLocation, socketStatus }) {
+function TabsIndexBanner({ myPresence, socketStatus }) {
     const [banner, setBanner] = useState(true);
 
     return (
@@ -21,7 +21,7 @@ function TabsIndexBanner({ myLocation, socketStatus }) {
                     style={{ borderRadius: 16 }}
                 >
                     {socketStatus === "connected" &&
-                        (myLocation
+                        (myPresence
                             ? "Broker connected · My location received"
                             : "Broker connected · Waiting to receive my location")}
                     {socketStatus === "connecting" && "Connecting to broker..."}

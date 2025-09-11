@@ -12,31 +12,29 @@ export const useStoredUserCode = () => {
     useEffect(() => {
         let cancelled = false;
         (async () => {
-            try {
-                const code = await AsyncStorage.getItem(STORAGE_KEY);
-                if (!cancelled) setUserCode(code);
-            } finally {
-                if (!cancelled) setIsChecked(true);
-            }
+            const code = await AsyncStorage.getItem(STORAGE_KEY);
+            if (!cancelled) setUserCode(code);
+            if (!cancelled) setIsChecked(true);
         })();
+
         return () => { cancelled = true; };
     }, [setUserCode])
 
     const save = useCallback(async (code) => {
         await AsyncStorage.setItem(STORAGE_KEY, code);
-        setUserCodeAtom(code);
+        setUserCode(code);
         setIsChecked(true);
     }, [setUserCode]);
 
     const clear = useCallback(async () => {
         await AsyncStorage.removeItem(STORAGE_KEY);
-        setUserCodeAtom(null);
+        setUserCode(null);
         setIsChecked(true);
     }, [setUserCode]);
 
     const refresh = useCallback(async () => {
         const code = await AsyncStorage.getItem(STORAGE_KEY);
-        setUserCodeAtom(code);
+        setUserCode(code);
         setIsChecked(true);
     }, [setUserCode]);
 

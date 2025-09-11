@@ -1,15 +1,14 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Client } from "@stomp/stompjs";
-import { presenceAtom, publishAtom, socketStatusAtom, workingAtom } from "atom/stompAtom";
+import { myPresenceAtom, otherPresenceAtom, publishAtom, socketStatusAtom, workingAtom } from "atom/stompAtom";
 import * as Location from 'expo-location';
 import { useSetAtom } from "jotai";
 import { useEffect, useRef, useState } from "react";
 
 // 웹소켓 엔드포인트: .env에 없으면 로컬 기본값 사용
-const WS_URL = 'ws://192.168.0.7:8080/ws';
 
 // STOMP 클라이언트 팩토리
-function makeStompClient(url) {
+function makeStompClient(url, userCode) {
     return new Client({
         webSocketFactory: () => new WebSocket(url, ['v12.stomp', 'v11.stomp']),
         forceBinaryWSFrames: true,
@@ -25,7 +24,8 @@ function makeStompClient(url) {
 }
 
 function StompProvider({ children }) {
-    const setPresence = useSetAtom(presenceAtom);
+    const setMe = useSetAtom(myPresenceAtom);
+    const setOthers = useSetAtom(otherPresenceAtom);      // 타 유저 모음
     const setSocketStatus = useSetAtom(socketStatusAtom);
     const setPublish = useSetAtom(publishAtom);
     const setWorkingFn = useSetAtom(workingAtom);
@@ -46,27 +46,45 @@ function StompProvider({ children }) {
             if (attempt < 3) {
                 setTimeout(() => safePublish(destination, body, attempt + 1), 150 * (attempt + 1));
             } else {
-                console.warn('[PUBLISH DROPPED] not connected:', destination);
+                console.warn("[PUBLISH DROPPED] not connected:", destination);
             }
             return;
         }
         try {
             client.publish({ destination, body });
         } catch (err) {
-            console.warn('[PUBLISH ERROR]', err?.message || err);
+            console.warn("[PUBLISH ERROR]", err?.message || err);
             if (attempt < 3) {
                 setTimeout(() => safePublish(destination, body, attempt + 1), 200 * (attempt + 1));
             }
         }
     };
 
-    // working helper
-    const setWorking = (userCode, working) => {
-        safePublish("/app/working", JSON.stringify({ userCode, working }));
-        setPresence(prev => ({
-            ...prev,
-            [userCode]: { ...prev[userCode], working }
-        }));
+    // working 토글 헬퍼: 내 것/남의 것 구분해서 반영
+    const setWorking = (code, working) => {
+        safePublish("/app/working", JSON.stringify({ userCode: code, working }));
+
+        if (!code) return;
+
+        setMe((prev) => {
+            // 내 계정이면 myPresenceAtom 업데이트
+            if (prev && prev.userCode === code) {
+                return { ...prev, working: !!working };
+            }
+            return prev;
+        });
+
+        // 타 유저면 presenceAtom 업데이트
+        setOthers((prev) => {
+            if (!prev[code]) return prev;
+            return {
+                ...prev,
+                [code]: {
+                    ...prev[code],
+                    working: !!working,
+                },
+            };
+        });
     };
 
     useEffect(() => {
@@ -78,20 +96,22 @@ function StompProvider({ children }) {
     useEffect(() => {
         (async () => {
             try {
-                const code = await AsyncStorage.getItem('userCode');
+                const code = await AsyncStorage.getItem("userCode");
                 setUserCode(code);
             } finally {
                 setReady(true);
             }
         })();
     }, []);
+    
+    const WS_URL = `ws://192.168.0.7:8080/ws?userCode=${encodeURIComponent(userCode)}`;
 
     // 연결/워치/핑
     useEffect(() => {
         if (!ready || !userCode) return;
 
-        setSocketStatus('connecting');
-        console.log('[PRESENCE] Starting with', { userCode, userName, WS_URL });
+        setSocketStatus("connecting");
+        console.log("[PRESENCE] Starting with", { userCode, userName, WS_URL });
 
         let cancelled = false;
 
@@ -99,129 +119,100 @@ function StompProvider({ children }) {
             let lat = 0, lng = 0;
             try {
                 const { status } = await Location.requestForegroundPermissionsAsync();
-                if (status === 'granted') {
+                if (status === "granted") {
                     const { coords } = await Location.getCurrentPositionAsync({});
                     lat = coords.latitude;
                     lng = coords.longitude;
                 }
             } catch (e) {
-                console.warn('Location error:', e);
+                console.warn("Location error:", e);
             }
 
-            // 선반영
-            if (lat != null && lng != null) {
-                setPresence(prev => ({
-                    ...prev,
-                    [userCode]: {
-                        userCode,
-                        userName,
-                        lat,
-                        lng,
-                        rtt: prev[userCode]?.rtt ?? 0,
-                        working: prev[userCode]?.working ?? false,
-                    },
-                }));
-            }
+            // 내 초기 상태 세팅 (presenceAtom에는 넣지 않음)
+            setMe((prev) => ({
+                userCode,
+                lat,
+                lng,
+                rtt: prev?.rtt || 0,
+                working: prev?.working ?? false,
+            }));
 
-            const client = makeStompClient(WS_URL);
+            const client = makeStompClient(WS_URL, userCode);
             clientRef.current = client;
 
             client.onConnect = () => {
                 if (cancelled) return;
 
-                console.log('[STOMP] CONNECTED ✅');
+                console.log("[STOMP] CONNECTED ✅");
                 isConnectedRef.current = true;
-                setSocketStatus('connected');
-
-                // 재반영
-                if (lat != null && lng != null) {
-                    setPresence(prev => ({
-                        ...prev,
-                        [userCode]: {
-                            userCode,
-                            userName,
-                            lat,
-                            lng,
-                            rtt: prev[userCode]?.rtt ?? 0,
-                            working: prev[userCode]?.working ?? false,
-                        },
-                    }));
-                }
+                setSocketStatus("connected");
 
                 // 1) snapshot
-                client.subscribe('/user/queue/presence', (msg) => {
+                client.subscribe("/user/queue/presence", (msg) => {
                     try {
-                        const arr = JSON.parse(msg.body);
-                        console.log(arr)
+                        const arr = JSON.parse(msg.body) || [];
+                        // console.log("[SNAPSHOT]", arr)
+                        const meNorm = String(userCode).trim().toLowerCase();
                         const map = {};
-                        (arr || []).forEach((p) => {
-                            map[p.userCode] = {
-                                userCode: p.userCode,
-                                userName: p.userName ?? p.userCode,
-                                lat: p.lat,
-                                lng: p.lng,
-                                rtt: p.rtt ?? 0,
-                                working: !!p.working,
-                            };
-                        });
-                        setPresence(prev => ({ ...prev, ...map }));
+                        arr
+                            .filter((p) => String(p.userCode).trim().toLowerCase() !== meNorm)
+                            .forEach((p) => {
+                                map[p.userCode] = {
+                                    userCode: p.userCode,
+                                    userName: p.userName ?? p.userCode,
+                                    lat: p.lat,
+                                    lng: p.lng,
+                                    rtt: p.rtt ?? 0,
+                                    working: !!p.working,
+                                };
+                            });
+                        setOthers((prev) => ({ ...prev, ...map }));
                     } catch (e) {
-                        console.warn('STOMP snapshot parse error:', e);
+                        console.warn("STOMP snapshot parse error:", e);
                     }
                 });
 
-                // 2) delta
-                client.subscribe('/topic/all', (msg) => {
+                // 2) 델타(others-only 개인 큐) — 서버가 이미 나를 빼고 보냄
+                client.subscribe("/user/queue/events", (msg) => {
                     try {
                         const data = JSON.parse(msg.body);
-
-                        if (data.type === 'LEAVE') {
-                            setPresence(prev => {
-                                const { [data.userCode]: _, ...rest } = prev;
-                                return rest;
+                        console.log("[CONNECT / UPDATE / WORKING]", data)
+                        // LEAVE 이벤트
+                        if (data.type === "LEAVE") {
+                            setOthers((prev) => {
+                                const next = { ...prev };
+                                delete next[data.userCode];
+                                return next;
                             });
                             return;
                         }
 
-                        setPresence(prev => {
-                            if (data.userCode === userCode) {
-                                const me = prev[userCode] ?? {};
-                                return {
-                                    ...prev,
-                                    [userCode]: {
-                                        ...me,
-                                        userCode,
-                                        userName: data.userName ?? userName ?? userCode,
-                                        rtt: data.rtt ?? me.rtt ?? 0,
-                                        working: typeof data.working === 'boolean' ? data.working : me.working ?? false,
-                                    },
-                                };
-                            }
-
-                            return {
-                                ...prev,
-                                [data.userCode]: {
-                                    userCode: data.userCode,
-                                    userName: data.userName ?? prev[data.userCode]?.userName ?? data.userCode,
-                                    lat: data.lat ?? prev[data.userCode]?.lat ?? 0,
-                                    lng: data.lng ?? prev[data.userCode]?.lng ?? 0,
-                                    rtt: data.rtt ?? prev[data.userCode]?.rtt ?? 0,
-                                    working: typeof data.working === 'boolean' ? data.working : prev[data.userCode]?.working ?? false,
-                                },
-                            };
-                        });
+                        // 일반 업데이트(타 유저만 온다)
+                        setOthers((prev) => ({
+                            ...prev,
+                            [data.userCode]: {
+                                userCode: data.userCode,
+                                userName: data.userName ?? prev[data.userCode]?.userName ?? data.userCode,
+                                lat: data.lat ?? prev[data.userCode]?.lat ?? 0,
+                                lng: data.lng ?? prev[data.userCode]?.lng ?? 0,
+                                rtt: data.rtt ?? prev[data.userCode]?.rtt ?? 0,
+                                working:
+                                    typeof data.working === "boolean"
+                                        ? data.working
+                                        : prev[data.userCode]?.working ?? false,
+                            },
+                        }));
                     } catch (e) {
-                        console.warn('STOMP delta parse error:', e);
+                        console.warn("STOMP delta parse error:", e);
                     }
                 });
 
-                // 초기 connect
+                // 초기 connect: 스냅샷 요청 + 내 접속 알림
                 setTimeout(() => {
-                    safePublish('/app/connect', JSON.stringify({ userCode, userName, lat, lng }));
-                    safePublish('/app/presence/snapshot', '{}');
+                    safePublish("/app/connect", JSON.stringify({ userCode, userName, lat, lng }));
+                    safePublish("/app/presence/snapshot", JSON.stringify({ userCode }));
                 }, 300);
-
-                // 위치 watch
+                // 위치 watch — 내 상태만 갱신 + 서버로 퍼블리시
                 (async () => {
                     try {
                         locationWatchRef.current?.remove?.();
@@ -234,39 +225,45 @@ function StompProvider({ children }) {
                             (loc) => {
                                 const { latitude, longitude } = loc.coords;
 
-                                setPresence(prev => ({
-                                    ...prev,
-                                    [userCode]: {
-                                        userCode,
-                                        userName: prev[userCode]?.userName ?? userName ?? userCode,
-                                        lat: latitude,
-                                        lng: longitude,
-                                        rtt: prev[userCode]?.rtt ?? 0,
-                                        working: prev[userCode]?.working ?? false,
-                                    },
+                                // 내 상태 업데이트 (presenceAtom에는 넣지 않음)
+                                setMe((prev) => ({
+                                    userCode,
+                                    userName: prev?.userName || userName || userCode,
+                                    lat: latitude,
+                                    lng: longitude,
+                                    rtt: prev?.rtt || 0,
+                                    working: prev?.working ?? false,
                                 }));
 
-                                safePublish('/app/update', JSON.stringify({ userCode, userName, lat: latitude, lng: longitude }));
+                                // 서버에 위치 업데이트
+                                safePublish(
+                                    "/app/update",
+                                    JSON.stringify({ userCode, userName, lat: latitude, lng: longitude })
+                                );
                             }
                         );
                     } catch (e) {
-                        console.warn('watchPosition error:', e);
+                        console.warn("watchPosition error:", e);
                     }
                 })();
 
-                // ping
+                // ping 주기
                 pingRef.current = setInterval(() => {
-                    safePublish('/app/ping', JSON.stringify({ userCode, userName, clientTime: Date.now() }));
+                    safePublish(
+                        "/app/ping",
+                        JSON.stringify({ userCode, userName, clientTime: Date.now() })
+                    );
                 }, 5000);
             };
 
             client.onWebSocketClose = (e) => {
-                console.warn('[WS CLOSED]', e?.code, e?.reason);
+                console.warn("[WS CLOSED]", e?.code, e?.reason);
                 isConnectedRef.current = false;
-                setSocketStatus('disconnected');
+                setSocketStatus("disconnected");
 
                 if (pingRef.current) clearInterval(pingRef.current);
                 pingRef.current = null;
+
                 locationWatchRef.current?.remove?.();
                 locationWatchRef.current = null;
             };
@@ -276,7 +273,7 @@ function StompProvider({ children }) {
 
         return () => {
             cancelled = true;
-            setSocketStatus('disconnected');
+            setSocketStatus("disconnected");
             isConnectedRef.current = false;
 
             if (pingRef.current) clearInterval(pingRef.current);
@@ -288,7 +285,7 @@ function StompProvider({ children }) {
             clientRef.current?.deactivate();
             clientRef.current = null;
         };
-    }, [ready, userCode, userName, setPresence, setSocketStatus]);
+    }, [ready, userCode, userName, setOthers, setMe, setSocketStatus]);
 
     return <>{children}</>;
 }

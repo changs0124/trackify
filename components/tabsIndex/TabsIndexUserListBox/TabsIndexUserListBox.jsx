@@ -1,26 +1,30 @@
 import { View } from 'react-native';
-import { Avatar, Card, Divider, List, Text } from 'react-native-paper';
+import { Avatar, Card, Divider, IconButton, List, Text } from 'react-native-paper';
 
 const UI_BY_WORKING = {
-    stable: { color: "#10b981", icon: "check-circle" },
-    working: { color: "#3b82f6", icon: "progress-clock" },
+    stable: "#10b981",
+    working: "#3b82f6",
 };
 
-function TabsIndexUserListBox({ mapRef, filtered }) {
+function TabsIndexUserListBox({ mapRef, filtered, setVisible, setSelectedUserInfo, userInfo }) {
+
+    const handleDetailedUserInfoOnPress = (data) => {
+        setVisible(true);
+        userInfo.mutate(data)
+    }
 
     return (
         <Card style={{ borderRadius: 16 }}>
             <Card.Title
-                title="User-List"
+                title="User List"
                 style={{ paddingHorizontal: 10, paddingTop: 8, paddingLeft: 20 }}
                 titleStyle={{ opacity: 0.8, fontSize: 18, fontWeight: "600" }}
             />
             <Divider style={{ marginHorizontal: 10 }} />
-            <View style={{ paddingHorizontal: 10 }}>
+            <View style={{ paddingLeft: 10 }}>
                 {
                     filtered.sort((a, b) => (a.distanceKm ?? 1e9) - (b.distanceKm ?? 1e9))
                         .map((u, idx, arr) => {
-                            const ui = u.working ? UI_BY_WORKING.working : UI_BY_WORKING.stable;
                             return (
                                 <View key={u.id}>
                                     <List.Item
@@ -32,12 +36,19 @@ function TabsIndexUserListBox({ mapRef, filtered }) {
                                         }
                                         style={{ paddingLeft: 6, paddingVertical: 6 }}
                                         left={(props) => (
-                                            <Avatar.Icon
-                                                {...props}
-                                                icon={ui.icon}
+                                            <Avatar.Text
+                                                label={(u?.userName?.[0] ?? "U").toUpperCase()}
+                                                size={40}
+                                                style={{ backgroundColor: UI_BY_WORKING[u.working ? "working" : "stable"] }}
                                                 color="white"
-                                                size={50}
-                                                style={{ backgroundColor: ui.color }}
+                                            />
+                                        )}
+                                        right={() => (
+                                            <IconButton
+                                                icon="plus"
+                                                size={22}
+                                                onPress={() => handleDetailedUserInfoOnPress(u.id)}
+                                                accessibilityLabel="Open user sheet"
                                             />
                                         )}
                                         onPress={() => {
@@ -54,20 +65,16 @@ function TabsIndexUserListBox({ mapRef, filtered }) {
                                         titleStyle={{ opacity: 0.8, fontSize: 16, fontWeight: "600" }}
                                         descriptionStyle={{ opacity: 0.6, fontSize: 14, fontWeight: "400" }}
                                     />
-                                    {idx < arr.length - 1 && <Divider />}
+                                    {
+                                        idx < arr.length - 1 &&
+                                        <Divider />
+                                    }
                                 </View>
                             );
                         })}
                 {
                     filtered.length === 0 &&
-                    <View
-                        style={{
-                            boxSizing: "border-box",
-                            minHeight: 150,
-                            justifyContent: "center",
-                            alignItems: "center",
-                        }}
-                    >
+                    <View style={{ boxSizing: "border-box", minHeight: 150, justifyContent: "center", alignItems: "center" }}>
                         <Text style={{ opacity: 0.6, fontSize: 16, fontWeight: 600 }}>
                             There are no matching users.
                         </Text>

@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Button, Divider, Menu, Text } from 'react-native-paper';
 
-function TabsHistoryProductMenuBox({ setProductId, products, productList, selectedProduct }) {
+function ProductMenuBox({ setProductId, products, productList, selectedProduct }) {
     const [productMenuVisible, setProductMenuVisible] = useState(false);
 
     const handleProductChange = useCallback((id) => {
@@ -29,22 +29,33 @@ function TabsHistoryProductMenuBox({ setProductId, products, productList, select
                     </Button>
                 }
             >
-                {products.isLoading && <ActivityIndicator style={{ margin: 8 }} />}
-                {products.isError && <Menu.Item onPress={() => products.refetch()} title="Load failed (try again)" />}
-                {productList.map((p, idx) => (
-                    <React.Fragment key={p.id}>
-                        <Menu.Item
-                            onPress={() => handleProductChange(p.id)}
-                            title={p.productName ?? `Product #${p.id}`}
-                            titleStyle={{ opacity: 0.8, fontSize: 14, fontWeight: "600" }}
-                            style={{ paddingVertical: 4 }}
-                        />
-                        {idx < productList.length - 1 && <Divider />}
-                    </React.Fragment>
-                ))}
+                {
+                    products.isLoading &&
+                    <ActivityIndicator style={{ margin: 8 }} />
+                }
+                {
+                    products.isError &&
+                    <Menu.Item onPress={() => products.refetch()} title="Load failed (try again)" />
+                }
+                {
+                    productList.map((p, idx) =>
+                        <React.Fragment key={p.id}>
+                            <Menu.Item
+                                onPress={() => handleProductChange(p.id)}
+                                title={p.productName ?? `Product #${p.id}`}
+                                titleStyle={{ opacity: 0.8, fontSize: 14, fontWeight: "600" }}
+                                style={{ paddingVertical: 4 }}
+                            />
+                            {
+                                idx < productList.length - 1 &&
+                                <Divider />
+                            }
+                        </React.Fragment>
+                    )
+                }
             </Menu>
         </>
     );
 }
 
-export default TabsHistoryProductMenuBox;
+export default ProductMenuBox;

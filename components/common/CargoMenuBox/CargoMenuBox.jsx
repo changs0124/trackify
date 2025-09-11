@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, Button, Divider, Menu, Text } from "react-native-paper";
 
-function TabsHistoryCargoMenuBox({ setCargoId, cargos, cargoList, selectedCargo }) {
+function CargoMenuBox({ setCargoId, cargos, cargoList, selectedCargo }) {
     const [cargoMenuVisible, setCargoMenuVisible] = useState(false);
 
     const handleCargoChange = useCallback((id) => {
@@ -55,4 +55,4 @@ function TabsHistoryCargoMenuBox({ setCargoId, cargos, cargoList, selectedCargo 
     );
 }
 
-export default TabsHistoryCargoMenuBox;
+export default CargoMenuBox;

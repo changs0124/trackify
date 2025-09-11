@@ -1,28 +1,24 @@
 import { useMemo } from "react";
-import { haversine } from "utils/geoUtils";
+import { haversineKm } from "utils/geoUtils";
 
-export const useFilteredUserList = ({ presence, userCode, filter, myLocation }) => {
+export const useFilteredUserList = ({ otherPresence, filter, myPresence }) => {
     const users = useMemo(() => {
-        const entries = Object.entries(presence);
+        const entries = Object.entries(otherPresence ?? {});
 
-        return entries
-            .filter(([code]) => code !== userCode)
-            .map(([code, p]) => {
-                const distanceKm =
-                    myLocation?.lat != null && myLocation?.lng != null
-                        ? Number(haversine(myLocation.lat, myLocation.lng, p.lat, p.lng).toFixed(2))
-                        : null;
+        return entries.map(([code, p]) => {
+            const hasMyLoc = myPresence?.lat != null && myPresence?.lng != null;
+            const d = hasMyLoc ? haversineKm(myPresence, p) : null;
 
-                return {
-                    id: code,
-                    userName: p.userName,
-                    lat: p.lat,
-                    lng: p.lng,
-                    working: !!p.working, // 핵심 불린
-                    distanceKm,
-                };
-            });
-    }, [presence, userCode, myLocation?.lat, myLocation?.lng]);
+            return {
+                id: code,
+                userName: p.userName,
+                lat: p.lat,
+                lng: p.lng,
+                working: p.working,                       // 핵심 불린
+                distanceKm: d == null ? null : Number(d.toFixed(2)), // NaN 방지
+            };
+        });
+    }, [otherPresence, myPresence?.lat, myPresence?.lng]);
 
     const filtered = useMemo(() => {
         return users.filter((u) => {

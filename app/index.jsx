@@ -1,7 +1,7 @@
 import { Redirect } from 'expo-router';
 
-function index() {
+function Index() {
     return <Redirect href="/(tabs)" />;
 }
 
-export default index;
+export default Index;

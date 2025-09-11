@@ -5,7 +5,7 @@ function TabsHistoryTopCargoBox({ setCargoId, topCargoList }) {
     return (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {topCargoList.map(c => (
-                <Chip key={c.id} icon="history" onPress={() => setCargoId(c.id)} style={{ flex: 1 }}>
+                <Chip key={c.id} icon="history" onPress={() => setCargoId(c.id)}>
                     {c.cargoName}
                 </Chip>
             ))}

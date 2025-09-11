@@ -1,42 +1,39 @@
-import { UI_BY_WORKING } from 'constants/tabsIndexConstants';
+import { useInitialLocation } from 'hooks/useInitialLocation';
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Card, IconButton } from 'react-native-paper';
 
-function TabsIndexMapBox({ mapRef, sheetRef, initialRegion, myLocation, filtered, setSheetData, userInfo }) {
-    const handleDetailedUserInfoOnPress = useCallback((id) => {
-        setSheetData(null);
-        try {
-            sheetRef.current?.snapToIndex(1);
-        } catch {
-            sheetRef.current?.expand?.();
-        }
-        if (!userInfo.isPending) userInfo.mutate(id);
-    }, [setSheetData, userInfo]);
+export const UI_BY_WORKING = {
+    stable: { color: "#10b981", icon: "check-circle" },
+    working: { color: "#3b82f6", icon: "progress-clock" },
+};
+
+function TabsIndexMapBox({ myPresence, mapRef, filtered }) {
+    const initialRegion = useInitialLocation({ mapRef, myPresence });
 
     const handleFocusOnMeOnPress = useCallback(() => {
-        if (myLocation?.lat && myLocation?.lng) {
+        if (myPresence?.lat && myPresence?.lng) {
             mapRef.current?.animateToRegion(
                 {
-                    latitude: myLocation.lat,
-                    longitude: myLocation.lng,
+                    latitude: myPresence.lat,
+                    longitude: myPresence.lng,
                     latitudeDelta: 0.01,
                     longitudeDelta: 0.01,
                 },
                 600
             );
         }
-    }, [myLocation])
+    }, [myPresence])
 
     return (
         <Card style={{ overflow: "hidden", borderRadius: 16 }}>
             <View style={{ minHeight: 250 }}>
                 <MapView ref={mapRef} style={{ flex: 1 }} initialRegion={initialRegion}>
                     {
-                        (myLocation?.lat && myLocation?.lng) &&
+                        (myPresence?.lat && myPresence?.lng) &&
                         <Marker
-                            coordinate={{ latitude: myLocation.lat, longitude: myLocation.lng }}
+                            coordinate={{ latitude: myPresence.lat, longitude: myPresence.lng }}
                             pinColor="purple"
                         />
                     }
@@ -46,7 +43,6 @@ function TabsIndexMapBox({ mapRef, sheetRef, initialRegion, myLocation, filtered
                                 key={u.id}
                                 coordinate={{ latitude: u.lat, longitude: u.lng }}
                                 pinColor={u.working ? UI_BY_WORKING.working.color : UI_BY_WORKING.stable.color}
-                                onPress={() => handleDetailedUserInfoOnPress(u.id)}
                             />
                         )
                     }

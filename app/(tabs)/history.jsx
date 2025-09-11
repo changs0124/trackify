@@ -1,11 +1,11 @@
 import { useMutation } from "@tanstack/react-query";
 import { instance } from "apis/instance";
 import { userCodeAtom } from "atom/userAtom";
+import CargoMenuBox from "components/common/CargoMenuBox/CargoMenuBox";
+import ProductMenuBox from "components/common/ProductMenuBox/ProductMenuBox";
 import TabHeader from "components/TabHeader/TabHeader";
 import TabLayout from "components/TabLayout/TabLayout";
-import TabsHistoryCargoMenuBox from "components/tabsHistory/TabsHistoryCargoMenuBox/TabsHistoryCargoMenuBox";
 import TabsHistoryMapBox from "components/tabsHistory/TabsHistoryMapBox/TabsHistoryMapBox";
-import TabsHistoryProductMenuBox from "components/tabsHistory/TabsHistoryProductMenuBox/TabsHistoryProductMenuBox";
 import TabsHistoryResultBox from "components/tabsHistory/TabsHistoryResultBox/TabsHistoryResultBox";
 import TabsHistoryTopCargoBox from "components/tabsHistory/TabsHistoryTopCargoBox/TabsHistoryTopCargoBox";
 import { useCargoQuery } from "hooks/useCargoQuery";
@@ -15,8 +15,7 @@ import { useAtomValue } from "jotai";
 import { useState } from "react";
 import { Button, Card } from "react-native-paper";
 
-
-function history() {
+function History() {
     const userCode = useAtomValue(userCodeAtom);
 
     const [cargoId, setCargoId] = useState(null);
@@ -26,8 +25,8 @@ function history() {
     const [historyList, setHistoryList] = useState([]);
 
     const [mapVisible, setMapVisible] = useState(false);
-    const [mapCoords, setMapCoords] = useState([]); // 현재 선택된 경로 좌표
-    const [mapTitle, setMapTitle] = useState(""); // 헤더용(목적지 등)
+    const [mapCoords, setMapCoords] = useState([]);
+    const [mapTitle, setMapTitle] = useState("");
 
     const getHistorys = useMutation({
         mutationFn: async () => {
@@ -41,21 +40,22 @@ function history() {
         onSuccess: (res) => setHistoryList(Array.isArray(res) ? res : [])
     });
 
-    const { cargos, cargoList, selectedCargo } = useCargoQuery({ userCode, cargoId });
-    const { products, productList, selectedProduct } = useProductQuery({ userCode, productId });
+    const { cargos, hisCargoList, selectedHisCargo } = useCargoQuery({ userCode, cargoId });
+    const { products, hisProductList, selectedHisProduct } = useProductQuery({ userCode, productId });
     const topCargoList = useTopCargoQuery({ userCode });
-
+    
     return (
         <>
             <TabHeader title={"History & Paths"} />
             <TabLayout>
                 <Card style={{ borderRadius: 16 }}>
                     <Card.Content style={{ gap: 12 }}>
-                        <TabsHistoryCargoMenuBox setCargoId={setCargoId} cargos={cargos} cargoList={cargoList} selectedCargo={selectedCargo} />
-                        <TabsHistoryProductMenuBox setProductId={setProductId} products={products} productList={productList} selectedProduct={selectedProduct} />
+                        <CargoMenuBox setCargoId={setCargoId} cargos={cargos} cargoList={hisCargoList} selectedCargo={selectedHisCargo} />
+                        <ProductMenuBox setProductId={setProductId} products={products} productList={hisProductList} selectedProduct={selectedHisProduct} />
                         <TabsHistoryTopCargoBox setCargoId={setCargoId} topCargoList={topCargoList} />
                         <Button
                             mode="contained"
+                            disabled={!selectedHisCargo || !selectedHisProduct}
                             onPress={() => getHistorys.mutateAsync().catch(() => { })}
                             loading={isSearching}
                             style={{ marginBottom: 4 }}
@@ -67,9 +67,9 @@ function history() {
                 </Card>
                 <TabsHistoryResultBox isSearching={isSearching} historyList={historyList} setMapVisible={setMapVisible} setMapCoords={setMapCoords} setMapTitle={setMapTitle} />
             </TabLayout>
-            <TabsHistoryMapBox mapVisible={mapVisible} setMapVisible={setMapVisible} mapCoords={mapCoords} setMapCoords={setMapCoords} mapTitle={mapTitle} setMapTitle={setMapTitle}/>
+            <TabsHistoryMapBox mapVisible={mapVisible} setMapVisible={setMapVisible} mapCoords={mapCoords} setMapCoords={setMapCoords} mapTitle={mapTitle} setMapTitle={setMapTitle} />
         </>
     );
 }
 
-export default history;
+export default History;

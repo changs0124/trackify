@@ -1,77 +1,105 @@
-import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
-import { useCallback } from 'react';
-import { View } from 'react-native';
-import { ActivityIndicator, Divider, Text } from 'react-native-paper';
+import { useCallback, useMemo } from 'react';
+import { Dimensions, Platform, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Avatar, Card, Chip, Divider, IconButton, Modal, Portal, Text } from 'react-native-paper';
 
-function TabsIndexUserInfoBox({ sheetRef, snapPoints, sheetData, userInfo }) {
-    const backdrop = useCallback((props) => (
-        <BottomSheetBackdrop
-            {...props}
-            pressBehavior="close"
-            appearsOnIndex={0}
-            disappearsOnIndex={-1}
-            opacity={0.25}
-        />
-    ), [])
+function InfoRow({ label, value }) {
+    return (
+        <View style={{ paddingVertical: 8 }}>
+            <Text style={{ opacity: 0.6, fontSize: 13, marginBottom: 2 }}>{label}</Text>
+            <Text style={{ opacity: 0.9, fontSize: 15, fontWeight: "600" }}>{value ?? "-"}</Text>
+            <Divider style={{ marginTop: 10 }} />
+        </View>
+    );
+}
+
+function SectionTitle({ children }) {
+    return (
+        <Text style={{ opacity: 0.9, fontSize: 16, fontWeight: "700", marginBottom: 10 }}>{children}</Text>
+    );
+}
+
+function TabsIndexUserInfoBox({ visible, setVisible, selectedUserInfo, userInfo }) {
+    const { width, height } = Dimensions.get("window");
+
+    const statusMeta = useMemo(() => {
+        const working = selectedUserInfo?.status === 1;
+        return working
+            ? { label: "WORKING", bg: "#e9f3ff", color: "#2563eb" }
+            : { label: "STABLE", bg: "#eef7f1", color: "#16a34a" };
+    }, [selectedUserInfo]);
+
+    const close = useCallback(() => {
+        setVisible(false);
+    }, [])
 
     return (
-        <BottomSheet
-            ref={sheetRef}
-            index={-1}
-            snapPoints={snapPoints}
-            enablePanDownToClose
-            handleIndicatorStyle={{ backgroundColor: "#bbbbbb" }}
-            backdropComponent={backdrop}
-        >
-            <BottomSheetView style={{ padding: 16, gap: 8 }}>
-                {
-                    userInfo.isPending &&
-                    <View style={{ paddingVertical: 8 }}><ActivityIndicator /></View>
-                }
-
-                {
-                    !!sheetData &&
-                    <>
-                        <Text style={{ opacity: 0.8, fontSize: 16, fontWeight: "600" }}>
-                            {sheetData.userName || "No userName"}
-                        </Text>
-                        <Text style={{ opacity: 0.6, fontSize: 14, fontWeight: "400" }}>
-                            Model: {sheetData.modelNumber || "-"}
-                        </Text>
-                        <Text style={{ opacity: 0.6, fontSize: 14, fontWeight: "400" }}>
-                            Volume: {sheetData.modelVolume ?? 0}
-                        </Text>
-                        <Divider />
-
-                        {
-                            sheetData?.status === 1
-                                ? <View style={{ marginTop: 8 }}>
-                                    <Text style={{ marginTop: 8, opacity: 0.6, fontSize: 14, fontWeight: "400" }}>
-                                        Cargo: {sheetData.cargoName || "-"}
-                                    </Text>
-                                    <Text style={{ opacity: 0.6, fontSize: 14, fontWeight: "400" }}>
-                                        Product: {sheetData.productName || "-"} x {sheetData.productCount ?? 0}
-                                    </Text>
-                                    <Text style={{ opacity: 0.6, fontSize: 14, fontWeight: "400" }}>
-                                        Volume: {sheetData.productVolume ?? 0}
-                                    </Text>
-                                </View>
-                                : <Text style={{ marginTop: 8, opacity: 0.6, fontSize: 14, fontWeight: "400" }}>
-                                    Not in progress
-                                </Text>
-                        }
-                    </>
-                }
-                {
-                    (userInfo.isError && !userInfo.isPending && !sheetData) &&
-                    <View style={{ minHeight: 150, justifyContent: "center", alignItems: "center" }}>
-                        <Text style={{ opacity: 0.6, fontSize: 14, fontWeight: "400" }}>
-                            Failed to retrieve information. Please try again.
-                        </Text>
+        <Portal>
+            <Modal visible={visible} onDismiss={close} dismissable={!userInfo.isPending} dismissableBackButton contentContainerStyle={{ justifyContent: "center", alignItems: "center", padding: 16 }}>
+                <Card style={{ width: Math.min(width * 0.96, 720), height: height * 0.5, borderRadius: 16, overflow: "hidden", alignSelf: "center" }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
+                        <Avatar.Text
+                            label={(selectedUserInfo?.userName?.[0] ?? "U").toUpperCase()}
+                            size={40}
+                            style={{ backgroundColor: statusMeta.color }}
+                            color="white"
+                        />
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                            <Text style={{ fontSize: 18, fontWeight: "700", opacity: 0.95 }}>
+                                {selectedUserInfo?.userName ?? "User-Info"}
+                            </Text>
+                        </View>
+                        <Chip style={{ backgroundColor: statusMeta.bg }} textStyle={{ color: statusMeta.color, fontWeight: "700" }}>
+                            {statusMeta.label}
+                        </Chip>
+                        <IconButton icon="close" onPress={close} accessibilityLabel="close" />
                     </View>
-                }
-            </BottomSheetView>
-        </BottomSheet>
+                    <Divider />
+                    <ScrollView
+                        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, paddingBottom: 24 }}
+                        showsVerticalScrollIndicator
+                        bounces={Platform.OS === "ios"}
+                    >
+                        {
+                            (userInfo.isPending || userInfo.isLoading) &&
+                            <View style={{ paddingVertical: 24 }}>
+                                <ActivityIndicator />
+                            </View>
+                        }
+                        {
+                            (!!selectedUserInfo && !userInfo.isPending) &&
+                            <View style={{ gap: 18 }}>
+                                <View style={{ flexDirection: width > 520 ? "row" : "column", gap: 18 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <SectionTitle>User info</SectionTitle>
+                                        <InfoRow label="Model Number" value={selectedUserInfo.modelNumber} />
+                                        <InfoRow label="Model Volume" value={selectedUserInfo.modelVolume.toFixed(2) ?? "0.00"} />
+                                        <InfoRow label="Volume" value={(selectedUserInfo.productVolume).toFixed(2) ?? "0.00"} />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <SectionTitle>Current Job</SectionTitle>
+                                        {
+                                            selectedUserInfo?.status === 1
+                                                ? <>
+                                                    <InfoRow label="Cargo" value={selectedUserInfo.cargoName} />
+                                                    <InfoRow label="Product" value={`${selectedUserInfo.productName ?? "-"} x ${selectedUserInfo.productCount ?? 0}`} />
+                                                    <InfoRow label="Volume" value={(selectedUserInfo.productVolume).toFixed(2) ?? "0.00"} />
+                                                </>
+                                                : <Text style={{ opacity: 0.6, fontSize: 14 }}>Not in progress</Text>
+                                        }
+                                    </View>
+                                </View>
+                            </View>
+                        }
+                        {
+                            userInfo.isError && !userInfo.isPending && !selectedUserInfo &&
+                            <View style={{ minHeight: 160, justifyContent: "center", alignItems: "center" }}>
+                                <Text style={{ opacity: 0.6, fontSize: 14 }}>Failed to retrieve information. Please try again.</Text>
+                            </View>
+                        }
+                    </ScrollView>
+                </Card>
+            </Modal>
+        </Portal>
     );
 }
 

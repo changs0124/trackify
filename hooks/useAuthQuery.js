@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { instance } from "apis/instance";
 
-export const useAuthQuery = (userCode, enabledFlags = { isChecked: false }) => {
-    const enabled = enabledFlags.isChecked && !!userCode;
+export const useAuthQuery = (userCode, isChecked) => {
+    const enabled = isChecked && !!userCode;
     
     const auth = useQuery({
         queryKey: ["auth", userCode],
