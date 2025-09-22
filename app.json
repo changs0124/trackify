@@ -37,6 +37,19 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "65890283-3772-41b3-8e51-a2052b8739e6"
+      }
+    },
+    "owner": "changhae",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/65890283-3772-41b3-8e51-a2052b8739e6"
     }
   }
 }

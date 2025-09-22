@@ -71,17 +71,18 @@ function TabsHistoryResultBox({ isSearching, historyList, setMapVisible, setMapC
                                         >
                                             {meta.label}
                                         </Chip>
-                                        {hasPath && (
+                                        {
+                                            hasPath &&
                                             <Badge style={{ marginTop: 6 }} size={20}>
                                                 path
                                             </Badge>
-                                        )}
+                                        }
                                     </View>
                                 )}
                                 onPress={() => hasPath && openMapForItem(item)}
                             />
                             {
-                                idx < historyList.length - 1 &&
+                                (idx < historyList.length - 1) &&
                                 <Divider />
                             }
                         </View>

@@ -8,7 +8,7 @@ import { darkTheme, lightTheme } from "styles/theme";
 
 const queryClient = new QueryClient();
 function RootLayout() {
-    const scheme = useColorScheme() ?? "light";
+    const scheme = useColorScheme();
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>

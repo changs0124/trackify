@@ -23,7 +23,7 @@ function TabsJobMapBox({ pathRef, lastSavedRef, lastTimeRef, step, setStep, prod
     const mapRef = useRef(null);
     const didInitRouteRef = useRef(false);
 
-    // dest와 현재 위치를 화면에 맞춰 줌
+    // 'route' 단계에서 현재 위치와 목적지를 화면에 같이 보이도록 카메라 맞춤
     useEffect(() => {
         if (step !== "route" || !mapRef.current || !dest) return;
 
@@ -40,50 +40,55 @@ function TabsJobMapBox({ pathRef, lastSavedRef, lastTimeRef, step, setStep, prod
         );
     }, [step, dest, myPresence?.lat, myPresence?.lng]);
 
-    // route 진입 시 1회만 경로 초기화 + 시작점 저장
+    // 'route' 진입 시 딱 1번: 경로 버퍼를 초기화하고, 현재 위치를 첫 포인트로 기록
     useEffect(() => {
-        if (step === "route" && !didInitRouteRef.current) {
-            resetPath();
+        if (step === "route" && !didInitRouteRef.current) { // route에 처음 들어온 순간(가드 ref로 1회만)
+            resetPath(); // 경로 초기화: pathRef=[], lastSavedRef=null, lastTimeRef=0
 
             const lat = myPresence?.lat;
             const lng = myPresence?.lng;
             if (lat != null && lng != null) {
-                pushPathPoint(lat, lng);
-                lastSavedRef.current = { lat, lng };
-                lastTimeRef.current = Date.now();
+                // 첫 점을 강제로 한 번 찍어 둠 (이후 비교 기준점)
+                pushPathPoint(lat, lng);  // 내부에서 시간/거리 조건도 보지만, 첫 호출은 보통 통과됨
+                lastSavedRef.current = { lat, lng };  // 명시적으로 마지막 저장점 갱신
+                lastTimeRef.current = Date.now(); // 마지막 저장 시간 갱신ㄴ
             }
 
-            didInitRouteRef.current = true;
+            didInitRouteRef.current = true; // "초기화 완료" 가드 ON > 같은 step에서 다시 실행되지 않도록
         }
 
-        // route 벗어날 때 가드 리셋
+        // route 벗어날 때 가드 리셋 (다음에 다시 들어오면 다시 1회 실행)
         if (step !== "route" && didInitRouteRef.current) {
             didInitRouteRef.current = false;
         }
-    }, [step, myPresence?.lat?.lat, myPresence?.lat?.lng, resetPath, pushPathPoint, lastSavedRef, lastTimeRef]);
+    }, [step, myPresence?.lat, myPresence?.lng, resetPath, pushPathPoint]);
 
-    // 위치 변화 시 조건 충족하면 누적 저장
+    // 위치가 바뀔 때마다: 시간/거리 조건을 충족하면 경로 포인트 누적
     useEffect(() => {
-        if (step !== "route") return;
+        if (step !== "route") return; // route가 아니면 경로 누적 중단
 
-        const lat = myPresence?.lat?.lat;
-        const lng = myPresence?.lat?.lng;
+        const lat = myPresence?.lat;
+        const lng = myPresence?.lng;
         if (lat == null || lng == null) return;
 
         const now = Date.now();
-        const last = lastSavedRef.current; // { lat, lng } | null
+        const last = lastSavedRef.current; // 마지막으로 저장한 점 { lat, lng } 또는 null
+
+        // 마지막 저장점과의 거리(m). (haversineKm가 이미 있다면 그걸 사용)
         const distM = last ? haversineKm(last, { lat, lng }) * 1000 : Infinity;
 
+        // 시간/거리/최대포인트 조건
         const enoughTime = !lastTimeRef.current || (now - (lastTimeRef.current ?? 0)) >= PATH_MIN_INTERVAL_MS;
         const enoughDist = distM >= PATH_MIN_DIST_M;
         const underLimit = (pathRef.current?.length ?? 0) < PATH_MAX_POINTS;
 
+        // 조건 통과 > 포인트 저장
         if (enoughTime && enoughDist && underLimit) {
-            pushPathPoint(lat, lng);
+            pushPathPoint(lat, lng);  // 내부에서도 동일한 조건(시간/거리/용량)을 한 번 더 체크함
             lastSavedRef.current = { lat, lng };
             lastTimeRef.current = now;
         }
-    }, [step, myPresence?.lat?.lat, myPresence?.lat?.lng, pushPathPoint, lastSavedRef, lastTimeRef, pathRef]);
+    }, [step, myPresence?.lat, myPresence?.lng, pushPathPoint]);
 
     const distanceKm = useMemo(() => {
         if (!dest) return 0;

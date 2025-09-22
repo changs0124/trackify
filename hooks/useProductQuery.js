@@ -12,17 +12,19 @@ export const useProductQuery = ({ userCode, productId, productCount, myVolume })
         retry: 0,
     });
 
+    // job.jsx
     const productList = Array.isArray(products.data) ? products.data : [];
-
-    const hisProductList = useMemo(() => {
-        const raw = Array.isArray(products.data) ? products.data : [];
-        return [{ id: 0, productName: "all" }, ...raw];
-    }, [products.data]);
 
     const selectedProduct = useMemo(
         () => productList.find((p) => p.id === productId),
         [productList, hisProductList, productId]
     );
+
+    
+    const hisProductList = useMemo(() => {
+        const raw = Array.isArray(products.data) ? products.data : [];
+        return [{ id: 0, productName: "전체" }, ...raw];
+    }, [products.data]);
 
     const selectedHisProduct = useMemo(
         () => hisProductList.find((p) => p.id === productId),

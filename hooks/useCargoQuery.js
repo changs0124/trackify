@@ -16,7 +16,7 @@ export const useCargoQuery = ({ userCode, cargoId }) => {
 
     const hisCargoList = useMemo(() => {
         const raw = Array.isArray(cargos.data) ? cargos.data : [];
-        return [{ id: 0, cargoName: "all" }, ...raw];
+        return [{ id: 0, cargoName: "전체" }, ...raw];
     }, [cargos.data]);
 
     const selectedCargo = useMemo(

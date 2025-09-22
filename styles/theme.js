@@ -1,4 +1,35 @@
-import { MD3DarkTheme, MD3LightTheme } from "react-native-paper";
+import { configureFonts, MD3DarkTheme, MD3LightTheme } from "react-native-paper";
+
+const fontConfig = {
+    displayLarge: {
+        fontFamily: "System", // iOS: San Francisco / Android: Roboto
+        fontWeight: "400",
+        fontSize: 57,
+        lineHeight: 64,
+        letterSpacing: 0,
+    },
+    headlineMedium: {
+        fontFamily: "System",
+        fontWeight: "600",
+        fontSize: 28,
+        lineHeight: 36,
+        letterSpacing: 0,
+    },
+    bodyLarge: {
+        fontFamily: "System",
+        fontWeight: "400",
+        fontSize: 16,
+        lineHeight: 24,
+        letterSpacing: 0.5,
+    },
+    labelMedium: {
+        fontFamily: "System",
+        fontWeight: "500",
+        fontSize: 12,
+        lineHeight: 16,
+        letterSpacing: 0.5,
+    }
+};
 
 export const lightTheme = {
     ...MD3LightTheme,
@@ -28,6 +59,7 @@ export const lightTheme = {
             level5: "#dbdbdb",
         },
     },
+    fonts: configureFonts({ config: fontConfig }),
     roundness: 10,
 };
 
@@ -59,5 +91,6 @@ export const darkTheme = {
             level5: "#3a3a3a",
         },
     },
+    fonts: configureFonts({ config: fontConfig }),
     roundness: 10,
 };
